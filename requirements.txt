@@ -1,0 +1,7 @@
+requests
+simpleaudio
+git+https://github.com/absadiki/pywhispercpp
+sounddevice
+webrtcvad
+setuptools
+openai
