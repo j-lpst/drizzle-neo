@@ -1,4 +1,6 @@
+import argparse
 import json
+import subprocess
 
 def load_config():
     with open('config.json') as f:
@@ -16,8 +18,17 @@ def load_config():
     memory_prompt = cfg['memory']['prompt']
     memory_maxlines = cfg['memory']['max_lines']
 
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-p", "--prompt", required=True, help="Prompt to send to the LLM")
+    args = parser.parse_args()
+    prompt = args.prompt.strip()
+    return prompt
+
 def main():
     load_config()
+    prompt = parse_args()
+    print(prompt)
 
 if __name__ == "__main__":
     main()
