@@ -1,13 +1,14 @@
 import argparse
 import json
 import os
+import re
 import subprocess
 from openai import OpenAI
 
 def load_config():
     with open('config.json') as f:
         cfg = json.load(f)
-    global server_url, mcp_url, model, prompt1, prompt2, prompt3, memory_model, memory_prompt, memory_maxlines
+    global server_url, mcp_url, model, prompt1, prompt2, prompt3, memory_model, memory_prompt, memory_maxlines, memory
     server_url = cfg['server']['url']
     mcp_url = cfg['mcp']['url']
 
@@ -20,19 +21,21 @@ def load_config():
     memory_prompt = cfg['memory']['prompt']
     memory_maxlines = cfg['memory']['max_lines']
 
+    with open('./state/memory.txt', 'r') as f:
+        memory = f.read()
+
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("-p", "--prompt", required=True, help="Prompt to send to the LLM")
+    parser.add_argument("-notts","--no-tts", action='store_true', help="Disable text-to-speech")
     args = parser.parse_args()
-    prompt = args.prompt.strip()
-    return prompt
+    return args
 
 def prompt_llm(prompt):
     apikey = os.getenv("OPENAI_API_KEY"),
     if apikey == (None,):
         apikey = ""
 
-    print(server_url)
     client = OpenAI(
         base_url = server_url,
         api_key=str(apikey)
@@ -40,16 +43,30 @@ def prompt_llm(prompt):
     completion = client.chat.completions.create(
         model=model,
         messages=[
-            {"role": "system", "content": prompt1+prompt2+prompt3},
+            {"role": "system", "content": prompt1+prompt2+prompt3 + "Your memory: " + memory},
             {"role": "user", "content": prompt},
         ]
     )
     return completion.choices[0].message.content
 
+def tts(reply):
+    reply_sanitized = reply.replace("’", "'")
+    reply_sanitized = reply_sanitized.replace("*", "")
+    reply_sanitized = reply_sanitized.replace("…", "...")
+    reply_sanitized = reply_sanitized.replace("—", "- ")
+    reply_sanitized = re.sub(r"\(.*?\)", "", reply_sanitized)   # Remove "roleplay" text (text inside parenthesis)
+    reply_sanitized = reply_sanitized.encode('ascii', 'ignore').decode('utf-8') # Remove all emojis
+    reply_sanitized = reply_sanitized.lower()   # turn all uppercase letters to lowercase
+
+    subprocess.run(['python3', 'audio.py', reply_sanitized])
+
 def main():
     load_config()
-    prompt = parse_args()
-    print(prompt_llm(prompt))
+    args = parse_args()
+    reply = prompt_llm(args.prompt)
+    print(reply)
+    if not args.no_tts:
+        tts(reply)
 
 if __name__ == "__main__":
     main()
