@@ -48,6 +48,8 @@ quaranteed. Instructions for setting up a llama-swap server are included inside
   - `$ OPENAI_API_KEY="my-api-key" python prompt.py ...`
   - `$ OPENAI_API_KEY="my-api-key" python assistant.py`
 
+For instructions on setting up your own llama-swap server, refer to `./llama-swap/README.md`.
+
 ## Configuration
 
 Configuration options are stored in config.json

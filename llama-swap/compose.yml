@@ -3,7 +3,7 @@ services:
     # Vulkan provides wide compatibility across different GPUs. You may use the Cuda or ROCm image instead depending on your GPU
     # Container tags are in https://github.com/mostlygeek/llama-swap/pkgs/container/llama-swap
     image: ghcr.io/mostlygeek/llama-swap:v174-vulkan-b7205
-    container_name: llama-swap
+    container_name: llama-swap-drizzle
 
     volumes:
       # THESE ARE PLACEHOLDER VALUES WHICH DON'T WORK! CHANGE THESE TO WHERE YOUR STUFF IS ACTUALLY LOCATED!
