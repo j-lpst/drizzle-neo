@@ -7,6 +7,7 @@ import re
 import subprocess
 from openai import OpenAI
 
+# load configuration options and make them global variables
 def load_config():
     with open('config.json') as f:
         cfg = json.load(f)
@@ -23,26 +24,26 @@ def load_config():
     memory_prompt = cfg['memory']['prompt']
     memory_maxmsgs = cfg['memory']['max_messages']
 
+    # create state/memory.txt if it doesn't exist yet and load it
     memory_path = Path("./state/memory.txt")
     if not memory_path.is_file():
         memory_path.parent.mkdir(parents=True, exist_ok=True)
         memory_path.write_text("")
-
     with open(memory_path, 'r') as f:
         memory = f.read()
 
+# create state/context.json if it doesn't exist yet and load it
 def load_context():
     context_path = Path("./state/context.json")
-
     if not context_path.is_file():
         context_path.parent.mkdir(parents=True, exist_ok=True)
         return {"version": 1, "history": []}
-
     with open(context_path, "r+", encoding="utf-8") as f:
         context = json.load(f)
 
     return(context)
 
+# append user's prompt and LLM's response to context.json
 def save_context(prompt,reply):
     context_path = Path("./state/context.json")
 
@@ -59,6 +60,7 @@ def save_context(prompt,reply):
         f.truncate()
 
 
+# command line arguments, run `$ python prompt.py -h` to view them
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("-p", "--prompt", required=True, help="Prompt to send to the LLM")
@@ -68,6 +70,7 @@ def parse_args():
     args = parser.parse_args()
     return args
 
+# get tool names from the MCP server
 def get_tools():
     url = mcp_url
     headers = {
@@ -108,6 +111,7 @@ def get_tools():
         })
     return openai_tools
 
+# call a tool the LLM wants to call and return what the MCP server outputs
 def call_tool(tool_name):
     url = mcp_url
     payload = {
@@ -246,7 +250,7 @@ def prompt_llm(prompt,debug):
 
 def update_memory_if_required():
     context = load_context()
-    n_lines = int(memory_maxmsgs / 2)  # How many prompts are removed
+    n_lines = int(memory_maxmsgs / 2)
 
     if len(context.get("history", [])) > memory_maxmsgs:
         print(f"--- Context exceeds maximum length ({len(context.get("history", []))}/{memory_maxmsgs})! Pruning and updating memory to {n_lines} messages, this may take a while... ---")
@@ -290,6 +294,7 @@ def update_memory_if_required():
         print("--- Done! ---")
 
 def tts(reply):
+    # sanitize LLM's reply for TTS
     reply_sanitized = reply.replace("’", "'")
     reply_sanitized = reply_sanitized.replace("*", "")
     reply_sanitized = reply_sanitized.replace("…", "...")
