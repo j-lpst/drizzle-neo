@@ -1,2 +1,4 @@
 state
 llama-swap/models
+*.bak
+__pycache__
