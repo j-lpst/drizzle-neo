@@ -241,25 +241,58 @@ def prompt_llm(prompt,debug):
     else:
         return message.content
 
-#def update_memory():
-#    context = load_context()
-#
-#    n_lines = memory_maxmsgs/2
-#
-#    # Remove the first n_lines entries from history (keep only newer entries)
-#    if len(context.get("history", [])) > n_lines:
-#        context["history"] = context["history"][n_lines:]
-#    
-#    # Persist the updated context back to the JSON file
-#    context_path = Path("./state/context.json")
-#    context_path.parent.mkdir(parents=True, exist_ok=True)
-#    with context_path.open("r+", encoding="utf-8") as f:
-#        current = json.load(f)
-#        current["history"] = context["history"]
-#        #print(current)
-#        #f.seek(0)
-#        #json.dump(current, f, ensure_ascii=False, indent=2)
-#        #f.truncate()
+def update_memory_if_required():
+    context = load_context()
+    n_lines = int(memory_maxmsgs / 2)  # How many prompts are removed
+
+    if len(context.get("history", [])) > memory_maxmsgs:
+        print(f"--- Context exceeds maximum length {len(context.get("history", []))}/{memory_maxmsgs}! Pruning and updating memory to {n_lines} objects, this may take a while... ---")
+
+        # Construct full memory prompt
+        memprompt = memory_prompt
+        memprompt += "\n"
+        memprompt += "\nThe conversation: " + "\n" + str(context)
+        memprompt += "\n"
+        memprompt += "\nThe current memory file: " + "\n" + memory
+
+        ## create payload and append memory prompt as the first value 
+        #payload = []
+        #payload.append({"role": "system", "content": memprompt})
+
+        ## add context to payload
+        #for entry in context["history"]:
+        #    payload.append({
+        #        "role": entry["role"],
+        #        "content": entry["content"]
+        #    })
+
+        apikey = os.getenv("OPENAI_API_KEY"),
+        if apikey is None:
+            apikey = ""
+
+        client = OpenAI(
+            base_url = server_url,
+            api_key = str(apikey),
+        )
+        completion = client.chat.completions.create(
+            model=memory_model,
+            messages=[
+                {"role": "system", "content": memprompt}
+            ]
+        )
+
+        message = completion.choices[0].message
+        print(message.content)
+
+        #context["history"] = context["history"][-n_lines:]
+        #context_path = Path("./state/context.json")
+        #context_path.parent.mkdir(parents=True, exist_ok=True)
+        #with context_path.open("r+", encoding="utf-8") as f:
+        #    current = json.load(f)
+        #    current["history"] = context["history"]
+        #    f.seek(0)
+        #    json.dump(current, f, ensure_ascii=False, indent=2)
+        #    f.truncate()
 
 def tts(reply):
     reply_sanitized = reply.replace("’", "'")
@@ -275,13 +308,13 @@ def tts(reply):
 def main():
     load_config()
     args = parse_args()
-    #update_memory()
     reply = prompt_llm(args.prompt,args.debug)
     print(reply)
-    if not args.no_save:
-        save_context(args.prompt,reply)
     if not args.no_tts:
         tts(reply)
-
+    if not args.no_save:
+        save_context(args.prompt,reply)
+    update_memory_if_required()
+    
 if __name__ == "__main__":
     main()
