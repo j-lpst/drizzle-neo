@@ -184,7 +184,7 @@ def assemble_payload(prompt,debug):
 def prompt_llm(prompt,debug):
     payload,tools,tool_names = assemble_payload(prompt,debug)
 
-    apikey = os.getenv("OPENAI_API_KEY"),
+    apikey = os.getenv("OPENAI_API_KEY")
     if apikey is None:
         apikey = ""
 
@@ -262,7 +262,7 @@ def update_memory_if_required():
         memprompt += "\n"
         memprompt += "\nThe current memory file: " + "\n" + memory
 
-        apikey = os.getenv("OPENAI_API_KEY"),
+        apikey = os.getenv("OPENAI_API_KEY")
         if apikey is None:
             apikey = ""
 

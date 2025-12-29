@@ -35,6 +35,7 @@ def get_wttr(retries: int=1, delay: float=1.0):
 
 # ======================================================================
 
+# Intended to simulate readings from a real moisture sensor connected to a potted plant's soil
 @mcp.tool(
         name="get_moisture_level",
         description="Get the current moisture level"
