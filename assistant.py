@@ -1,9 +1,13 @@
+import os
+import sys
 import subprocess
 import multiprocessing
 from pywhispercpp.examples.assistant import Assistant
 
 num_threads = multiprocessing.cpu_count()
 num_threads = int(num_threads/2)
+
+apikey = os.getenv("OPENAI_API_KEY", "")
 
 # pywhispercpp documentation: https://absadiki.github.io/pywhispercpp/
 # list of available models: https://absadiki.github.io/pywhispercpp/#pywhispercpp.constants.AVAILABLE_MODELS
@@ -12,7 +16,9 @@ num_threads = int(num_threads/2)
 
 def on_segment(text: str) -> None:
     print(text)
-    subprocess.run(['python3', 'prompt.py', '-p', text])
+    env = os.environ.copy()
+    env["OPENAI_API_KEY"] = apikey
+    subprocess.run(['python3', 'prompt.py', '-p', text, '-notts', '-ns'], env=env)  
     print("--- Listening... ---")
 
 # models are saved to ~/.local/share/pywhispercpp/models/
