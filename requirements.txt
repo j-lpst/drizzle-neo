@@ -1,7 +1,10 @@
 requests
 simpleaudio
-git+https://github.com/absadiki/pywhispercpp
+git+https://github.com/absadiki/pywhispercpp@cfff92980c43e9fdfcf9fa61f5d51a82c2cbe0fe
 sounddevice
 webrtcvad
 setuptools
 openai
+setuptools==66.1.1
+numpy==2.3.4
+fastmcp
