@@ -64,6 +64,7 @@ def parse_args():
     parser.add_argument("-p", "--prompt", required=True, help="Prompt to send to the LLM")
     parser.add_argument("-d","--debug", action='store_true', help="Print various debug information, such as the LLM's full reply")
     parser.add_argument("-notts","--no-tts", action='store_true', help="Disable text-to-speech")
+    parser.add_argument("-ns","--no-save", action='store_true', help="Disable saving messages to context.json")
     args = parser.parse_args()
     return args
 
@@ -277,7 +278,8 @@ def main():
     #update_memory()
     reply = prompt_llm(args.prompt,args.debug)
     print(reply)
-    save_context(args.prompt,reply)
+    if not args.no_save:
+        save_context(args.prompt,reply)
     if not args.no_tts:
         tts(reply)
 
