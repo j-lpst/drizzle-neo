@@ -58,8 +58,8 @@ slow on CPU.
 
 llama.cpp (the underlying program llama-swap uses to run models) is fairly
 optimal at caching prompts, so only the first response after loading the model
-should be take a while, with subsequent prompts relying mostly only on
-generation speed.
+should take a while, with subsequent prompts relying mostly on generation speed
+rather than processing speed.
 
 In case the time to process the prompt takes too long, switch to a smaller model
 or decrease the value of `memory.max_messages` in `config.json` to decrease the

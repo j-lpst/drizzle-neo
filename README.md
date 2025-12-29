@@ -6,10 +6,10 @@ memory.
 WARNING! This project has only been tested on Linux. It may or may not work
 inside WSL2.
 
-WARNING! This projecr has been only tested using a locally hosted llama-swap
+WARNING! This project has been only tested using a locally hosted llama-swap
 instance inside my LAN, not protected by an API key. This project may work with
 any other OpenAI-compatible endpoint (ChatGPT, Gemini, etc.), but it is not
-quaranteed. Instructions for setting up a llama-swap server are included inside
+guaranteed. Instructions for setting up a llama-swap server are included inside
 `./llama-swap`.
 
 ## Features
@@ -44,7 +44,7 @@ quaranteed. Instructions for setting up a llama-swap server are included inside
   - Downloading the speech-to-text may take a while
   - You should adjust the speech-to-text model based on your CPU, see comments
     in `assistant.py`
-- If your API requires an API key, prepend it to the commands, for exmaple:
+- If your API requires an API key, prepend it to the commands, for example:
   - `$ OPENAI_API_KEY="my-api-key" python prompt.py ...`
   - `$ OPENAI_API_KEY="my-api-key" python assistant.py`
 
