@@ -113,15 +113,22 @@ def get_tools():
     return openai_tools
 
 # call a tool the LLM wants to call and return what the MCP server outputs
-def call_tool(tool_name):
+def call_tool(tool_name,tool_args):
     url = mcp_url
+
+    if isinstance(tool_args, str):
+        tool_args = json.loads(tool_args)
+
     payload = {
-        "jsonrpc": "2.0",
+      "jsonrpc": "2.0",
         "id": 2,
         "method": "tools/call",
-        "params": {"name": tool_name}
-}
-    headers = {
+        "params": {
+          "name": tool_name,
+          "arguments": tool_args
+        },
+    }
+    headers = { 
         "Accept": "application/json, text/event-stream",
         "Content-Type": "application/json"
     }
@@ -144,27 +151,6 @@ def call_tool(tool_name):
                     raise RuntimeError(f"Tool error: {data['error']}")
     raise RuntimeError("No valid result found in response")
 
-def rag(prompt):
-    # Load JSON and extract the message history
-    data = json.load(open("./state/context-archive.json", encoding='utf-8'))
-    history = data.get('history', [])
-
-    # Embed the query and all message contents
-    model = SentenceTransformer('all-MiniLM-L6-v2')
-    contents = [msg['content'] for msg in history]
-    q_emb   = model.encode([prompt])
-    c_emb   = model.encode(contents)
-
-    # Find the best‑matching message(s)
-    scores  = (q_emb @ c_emb.T).flatten()
-    best_idx = scores.argmax()
-
-    # Return matches in simplified format
-    retrieved = "\n".join(f"{msg['role']}: {msg['content']}" for msg in history[:best_idx + 1])
-    #print(retrieved)
-
-    return retrieved
-
 def assemble_payload(prompt,debug):
     # Load tool information
     tools = get_tools()
@@ -176,8 +162,6 @@ def assemble_payload(prompt,debug):
         print("--- Available Tools ---")
         print(tool_names)
         print()
-
-    rag_result = rag(prompt)
 
     # construct system prompt
     system_prompt = (
@@ -191,14 +175,16 @@ def assemble_payload(prompt,debug):
         + "\n"
         + memory
         + "\n\n"
-        + "Context based on archived messages:"
-        + "\n"
-        + rag_result
-        + "\n\n"
         + "You have access to the following tools:"
         + "\n"
         + tool_names
     )
+
+    if debug:
+        print("--- Full System Prompt ---")
+        print(system_prompt)
+        print("--------------------------")
+        print()
 
     # load context + append user prompt to it
     context = load_context()
@@ -240,16 +226,19 @@ def prompt_llm(prompt,debug):
         print("--- Full Message Before Tool Call Check ---")
         print(message)
 
-    # Check if the model decided to call a tool
+    # Check if the model decided to call a tool and store+process the tool's name and optional parameters
     # These two lines below are full of LSP errors but work fine, just ignore
     if getattr(message, "tool_calls", None) and len(message.tool_calls) > 0:
         tool_name = message.tool_calls[0].function.name
+        tool_args = message.tool_calls[0].function.arguments
         if debug:
             print("--- Selected Tool ---")
             print(tool_name)
+            if tool_args:
+                print(tool_args)
             print()
 
-        tool_result = call_tool(tool_name)
+        tool_result = call_tool(tool_name,tool_args)
         if debug:
             print("--- Tool Result ---")
             print(tool_result)
@@ -344,6 +333,8 @@ def update_memory_if_required():
         print("--- Done! ---")
 
 def tts(reply):
+    reply = str(reply)
+
     # sanitize LLM's reply for TTS
     reply_sanitized = reply.replace("’", "'")
     reply_sanitized = reply_sanitized.replace("*", "")
