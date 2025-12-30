@@ -7,9 +7,10 @@ WARNING! This project has only been tested on Linux. It may or may not work
 inside WSL2.
 
 WARNING! This project has been only tested using a locally hosted llama-swap
-instance inside my LAN. This project may work with any other OpenAI-compatible
-endpoint (ChatGPT, Gemini, etc.), but it is not guaranteed. Instructions for
-setting up a llama-swap server are included inside `./llama-swap`.
+instance inside my LAN. This project should work with any other
+OpenAI-compatible endpoint (ChatGPT, Gemini, etc.), but that is not guaranteed.
+Instructions and configurations for setting up a llama-swap server are included
+inside `./llama-swap`.
 
 ## Features
 
