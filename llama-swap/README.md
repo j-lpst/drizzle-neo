@@ -8,9 +8,9 @@ instance in a podman/docker environment.
 - Download your desired models and place them into their respective directories
   in the `models` directory
   - see: comments in `config.yaml`
-- Edit `compose.yml` and replace the placeholder volume paths with your own.
-  Additionally comment out the `device:` section if it is giving you problems
-  later
+- Edit `compose.yml` and replace the placeholder volume paths with your own
+- (Optional) Uncomment the `devices:` section in `compose.yml` to allow access
+  to a GPU
 - Edit `config.json` and replace the model names there with the models you want
   to use
   - see: `config.yaml` for appropriate model names

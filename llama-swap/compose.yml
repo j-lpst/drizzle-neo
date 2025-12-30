@@ -11,16 +11,15 @@ services:
       - /home/jesse/drizzle-neo/llama-swap/models:/models:z
       - /home/jesse/drizzle-neo/llama-swap/config.yaml:/app/config.yaml:z
 
-    # Allow access to GPU
+    # Uncomment to allow access to GPU
     # Only tested on an AMD GPU
-    # Comment out if this causes problems
     #
     # If running in Podman, you may need to run the command below to allow access to devices
-    # sudo setsebool -P container_use_devices=true
+    # `sudo setsebool -P container_use_devices=true`
     # https://docs.podman.io/en/latest/markdown/podman-run.1.html
-    devices:
-      - /dev/kfd
-      - /dev/dri
+    #devices:
+    #  - /dev/kfd
+    #  - /dev/dri
 
     # The port of the interface and the API endpoint
     # e.g. http://127.0.0.1:9292

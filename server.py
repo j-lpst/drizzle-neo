@@ -106,7 +106,7 @@ def rag(prompt,num_snippets,window_size):
 def get_moisture_level() -> str:
     level = random.randint(0, 100)
     level = str(level)+"%"
-    print(f"[MCP] get_moisture_level() -> {level}%")
+    print(f"[MCP] get_moisture_level() -> {level}")
     return level
 
 @mcp.tool(
