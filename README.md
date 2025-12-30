@@ -14,10 +14,10 @@ inside `./llama-swap`.
 
 ## Features
 
-- Conversation history (stored in context.txt)
+- Conversation (short-term) history (stored in context.txt)
 - Automatic pruning and archival of conversation history
 - Long-term memory via memory generation (stored in memory.txt) and RAG (from
-  archived conversations at context-archive.json)
+  archived conversations in `context-archive.json`)
 - Tool use via the MCP protocol
 - Text-to-speech (hosted externally)
 - Speech-to-text using pywhispercpp
@@ -41,7 +41,7 @@ inside `./llama-swap`.
 - Start the MCP server: `$ python server.py`
 - Prompt model to confirm it is working: `$ python prompt.py -p "How are you?"`
   - Run `$ python prompt.py -h` for available options
-- Run assistant.py for hands-free conversations: `$ python assistan.py`
+- Run assistant.py for hands-free conversations: `$ python assistant.py`
   - Downloading the speech-to-text may take a while
   - You should adjust the speech-to-text model based on your CPU, see comments
     in `assistant.py`
@@ -53,11 +53,11 @@ For instructions on setting up your own llama-swap server, refer to `./llama-swa
 
 ## Configuration
 
-Configuration options are stored in config.json
+Configuration options are stored in config.json.
 
 ### server.url
 
-The OpenAI-compatible API's endpoint
+The OpenAI-compatible API's URL
 
 ### mcp.url
 
@@ -98,3 +98,24 @@ The prompt used for memory generation
 
 The maximum amount of messages before long-term memory generation is triggered and the
 conversation (context.txt) is trimmed to max_messages/2 messages
+
+## Implemented Tools
+
+### get_moisture_levels
+
+Returns a random value between 0% and 100%. Intended to simulate a real moisture
+sensor in a potted plant's soil
+
+### get_date_and_time
+
+Returns the current date and time
+
+### get_weather
+
+Returns the current temperature and precipitation amount using `wttr.in`. This
+service is down quite often, so expect curl errors
+
+### recall_longterm_memory
+
+Use RAG to recall information from past conversations. All conversations are
+permanently stored in `context-archive.json`
