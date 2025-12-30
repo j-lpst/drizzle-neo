@@ -272,7 +272,7 @@ def update_memory_if_required():
     n_lines = int(memory_maxmsgs / 2)
 
     if len(context.get("history", [])) > memory_maxmsgs:
-        print(f"--- Context exceeds maximum length ({len(context.get("history", []))}/{memory_maxmsgs})! Pruning and updating memory to {n_lines} messages, this may take a while... ---")
+        print(f"--- Context exceeds maximum length ({len(context.get("history", []))}/{memory_maxmsgs})! Pruning and updating context to {n_lines} messages, this may take a while... ---")
 
         # Construct full memory prompt
         memprompt = memory_prompt

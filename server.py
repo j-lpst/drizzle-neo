@@ -4,7 +4,9 @@ import random
 import subprocess, time
 from datetime import datetime
 import json
-from sentence_transformers import SentenceTransformer
+from pathlib import Path
+from typing import Annotated
+from sentence_transformers import SentenceTransformer, util
 
 mcp = FastMCP("MoistureSensor")
 
@@ -35,27 +37,64 @@ def get_wttr(retries: int=1, delay: float=1.0):
         # any other error (or final 52 attempt)
         return f"curl error {result.returncode}"
 
-# Retrieve relevant
-def rag(prompt):
-    # Load JSON and extract the message history
-    data = json.load(open("./state/context-archive.json", encoding='utf-8'))
-    history = data.get('history', [])
+# Retrieve relevant archived conversation snippets
+def rag(prompt,num_snippets,window_size):
+    embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
 
-    # Embed the query and all message contents
-    model = SentenceTransformer('all-MiniLM-L6-v2')
-    contents = [msg['content'] for msg in history]
-    q_emb   = model.encode([prompt])
-    c_emb   = model.encode(contents)
+    archive_path = Path("./state/context-archive.json")
+    if not archive_path.is_file():                     # file missing
+        archive_path.parent.mkdir(parents=True, exist_ok=True)  # ensure ./state exists
+        archive_path.write_text(
+            json.dumps({"history": []}, ensure_ascii=False, indent=2),
+            encoding="utf-8"
+        )
 
-    # Find the best‑matching message(s)
-    scores  = (q_emb @ c_emb.T).flatten()
-    best_idx = scores.argmax()
+    top_k = num_snippets
+    window = window_size
 
-    # Return matches in simplified format
-    retrieved = "\n".join(f"{msg['role']}: {msg['content']}" for msg in history[:best_idx + 1])
-    #print(retrieved)
+    # load archive
+    with open(archive_path, encoding="utf-8") as f:
+        data = json.load(f)
+    history = data.get("history", [])
+    if not history:
+        return ""
 
-    return retrieved
+    # make sure every entry has a string for content
+    for msg in history:
+        if msg.get("content") is None:
+            msg["content"] = ""
+
+    # encode the query and all messages
+    q_emb = embedding_model.encode([prompt], normalize_embeddings=True)
+    c_emb = embedding_model.encode([msg["content"] for msg in history], normalize_embeddings=True)
+
+    # cosine similarity -> top‑k indices & scores (descending order)
+    scores = util.cos_sim(q_emb, c_emb).flatten()
+    top_vals, top_idxs = scores.topk(k=min(top_k, len(history)), largest=True)
+
+    # build a labelled block for each hit
+    blocks = [] # will hold (rank, block_string)
+
+    for rank, (score, idx) in enumerate(zip(top_vals.tolist(), top_idxs.tolist()), start=1):
+        # window around the hit
+        start = max(0, idx - window)
+        end   = min(len(history), idx + window + 1)
+
+        # header
+        header = f"===== Snippet Relevancy: {rank} (score: {score:.3f}) ====="
+
+        # body (role + content)
+        body = "\n".join(
+            f"{history[i]['role']}: {history[i]['content']}"
+            for i in range(start, end)
+        )
+
+        blocks.append((rank, f"{header}\n{body}"))
+
+    # reverse order (top-to-bottom = low_score -> high_score)
+    ordered_strings = [block for _, block in reversed(blocks)]
+
+    return "\n\n".join(ordered_strings)
 
 # ======================================================================
 
@@ -93,13 +132,20 @@ def get_weather() -> str:
 
 @mcp.tool(
         name="recall_longterm_memory",
-        description="Return relevant snippets from archived conversations based on given keyword or sentence using retrieval-augmented generation (RAG). Use if you need to or the user requires you to recall something."
+        description="Return relevant snippets from archived conversations based on given keyword or sentence using retrieval-augmented generation (RAG). Use if you yourself need to recall something or if the user requires you to recall something."
 )
-def recall_longterm_memory(query: str) -> str:
+def recall_longterm_memory(query: str,
+                           num_snippets: Annotated[int, "The more snippets, the wider the scope of the search. min=5, max=15"] = 5,
+                           window_size: Annotated[int, "The amount of surrounding messages included around a retrieved snippet. min=2, max=5"] = 2
+                          ) -> str:
+    if num_snippets > 15:
+        num_snippets = 15
+    if window_size > 5:
+        window_size = 5
     retrieved = "========== SNIPPETS FROM PREVIOUS CONVERSATIONS ==========\n"
-    retrieved = retrieved + rag(query) + "\n"
+    retrieved = retrieved + rag(query,num_snippets,window_size) + "\n"
     retrieved = retrieved + "========== END CONVERSATION SNIPPETS =========="
-    print(f"[MCP] recall_longterm_memory({query}) -> {retrieved}")
+    print(f"[MCP] recall_longterm_memory({query},{num_snippets},{window_size}) -> {retrieved}")
     return retrieved
 
 if __name__ == "__main__":

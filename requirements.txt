@@ -8,3 +8,5 @@ openai
 setuptools==66.1.1
 numpy==2.3.4
 fastmcp
+sentence_transformers
+torch
