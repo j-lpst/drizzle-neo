@@ -1,4 +1,5 @@
 requests
+flask
 simpleaudio
 # Pywhispercpp will compile from source and most likely fails and complains about missing build dependencies.
 # Just throw the error to an LLM and it will tell you what to install ¯\_(ツ)_/¯

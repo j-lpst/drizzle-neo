@@ -67,6 +67,17 @@ configurations for setting up a llama-swap server are included inside
 - Start the MCP server: `$ python mcp-server.py`
 - Prompt model to confirm it is working: `$ python prompt.py -p "How are you?"`
   - Run `$ python prompt.py -h` for available options
+- Start the Flask server to prompt the model over LAN
+  - `$ python app.py`
+
+Example `curl` call:
+
+```shell
+curl -X POST http://127.0.0.1:5000/run \
+   -H "Content-Type: application/json" \
+   -d '{"prompt":"Tell me Golden Pothos facts.","args":["-notts"]}'
+```
+
 - Run assistant.py for hands-free conversations: `$ python assistant.py`
   - Downloading the speech-to-text model may take a while
   - You should adjust the speech-to-text model based on your CPU, see comments
