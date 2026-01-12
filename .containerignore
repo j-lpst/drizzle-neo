@@ -1,5 +1,4 @@
-state
+venv
 llama-swap/models
 *.bak
-venv
 __pycache__

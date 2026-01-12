@@ -1,0 +1,10 @@
+services:
+  drizzle:
+    image: localhost/drizzle-neo
+    container_name: drizzle-neo
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./state:/app/state:z
+      - ./config.json:/app/config.json:z
+    restart: unless-stopped

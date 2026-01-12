@@ -49,6 +49,8 @@ configurations for setting up a llama-swap server are included inside
 
 ## Installation
 
+### Traditional
+
 - Set up a venv and activate it
   - `$ python -m venv venv`
   - `$ source venv/bin/activate`
@@ -57,6 +59,22 @@ configurations for setting up a llama-swap server are included inside
   - WARNING! May require Python3 development headers! Install the appropriate
     package depending on your distribution (`python3-dev`, `python3-devel`,
     etc.). A C++ compiler (`g++`) may also be required.
+
+### Container
+
+If using Docker, replace `podman` with `docker`.
+
+- Build the container
+  - `$ podman build -f Containerfile -t drizzle-neo`
+- Run the example compose.yml
+  - `$ podman compose up`
+- Test functionality
+
+```shell
+curl -X POST http://127.0.0.1:5000/run \
+   -H "Content-Type: application/json" \
+   -d '{"prompt":"What\'s the weather like?","args":["-notts"]}'
+```
 
 ## Usage
 
