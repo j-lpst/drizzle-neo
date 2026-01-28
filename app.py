@@ -1,6 +1,7 @@
 import os
 import subprocess
-from flask import Flask, request
+from flask import Flask, jsonify, request
+from flask_cors import CORS
 
 print("""
     _/_/_/    _/_/_/    _/_/_/  _/_/_/_/_/  _/_/_/_/_/  _/        _/_/_/_/   
@@ -23,6 +24,7 @@ _/      _/  _/_/_/_/    _/_/
 #    -d '{"prompt":"Tell me Golden Pothos facts.","args":["-notts"]}'
 
 app = Flask(__name__)
+CORS(app)
 
 @app.route("/run", methods=["POST"])
 def run_prompt():
@@ -46,6 +48,30 @@ def run_prompt():
         status=200,
         mimetype="text/plain"
     )
+
+
+@app.route("/chat", methods=["POST"])
+def chat():
+    data = request.get_json(force=True) or {}
+    text = (data.get("text") or "").strip()
+
+    if not text:
+        return jsonify({"error": "Missing text"}), 400
+
+    cmd = ["python", "prompt.py", "-p", text]
+
+    result = subprocess.run(
+        cmd,
+        cwd=os.path.dirname(__file__),
+        capture_output=True,
+        text=True,
+        timeout=300
+    )
+
+    if result.returncode != 0:
+        return jsonify({"error": result.stderr.strip() or "Prompt failed"}), 500
+
+    return jsonify({"reply": result.stdout.strip()})
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=False)
