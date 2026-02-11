@@ -8,6 +8,9 @@ import subprocess
 from sentence_transformers import SentenceTransformer
 from openai import OpenAI
 
+# Global variable to hold the chosen context file name (default: context.json)
+context_file_path = "context.json"
+
 # load configuration options and make them global variables
 def load_config():
     with open('config.json') as f:
@@ -33,20 +36,19 @@ def load_config():
     with open(memory_path, 'r') as f:
         memory = f.read()
 
-# create state/context.json if it doesn't exist yet and load it
+# create state/context file if it doesn't exist yet and load it
 def load_context():
-    context_path = Path("./state/context.json")
+    context_path = Path(f"./state/{context_file_path}")
     if not context_path.is_file():
         context_path.parent.mkdir(parents=True, exist_ok=True)
         return {"version": 1, "history": []}
     with open(context_path, "r+", encoding="utf-8") as f:
         context = json.load(f)
-
     return(context)
 
-# append user's prompt and LLM's response to context.json
+# append user's prompt and LLM's response to context file
 def save_context(prompt,reply):
-    context_path = Path("./state/context.json")
+    context_path = Path(f"./state/{context_file_path}")
 
     context_path.parent.mkdir(parents=True, exist_ok=True)
     if not context_path.exists():
@@ -60,7 +62,6 @@ def save_context(prompt,reply):
         json.dump(context, f, ensure_ascii=False, indent=2)
         f.truncate()
 
-
 # command line arguments, run `$ python prompt.py -h` to view them
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -68,6 +69,8 @@ def parse_args():
     parser.add_argument("-d","--debug", action='store_true', help="Print various debug information, such as the LLM's full reply")
     parser.add_argument("-notts","--no-tts", action='store_true', help="Disable text-to-speech")
     parser.add_argument("-ns","--no-save", action='store_true', help="Disable saving messages to context.json")
+    parser.add_argument("-cf", "--contextfile", default="context.json",
+                        help="Context JSON file to use for saving and loading conversation history")
     args = parser.parse_args()
     return args
 
@@ -272,7 +275,7 @@ def update_memory_if_required():
     n_lines = int(memory_maxmsgs / 2)
 
     if len(context.get("history", [])) > memory_maxmsgs:
-        print(f"--- Context exceeds maximum length ({len(context.get("history", []))}/{memory_maxmsgs})! Pruning and updating context to {n_lines} messages, this may take a while... ---")
+        print(f"--- Context exceeds maximum length ({len(context.get('history', []))}/{memory_maxmsgs})! Pruning and updating context to {n_lines} messages, this may take a while... ---")
 
         # Construct full memory prompt
         memprompt = memory_prompt
@@ -321,7 +324,7 @@ def update_memory_if_required():
 
         # Trim context.txt
         context["history"] = context["history"][-n_lines:]
-        context_path = Path("./state/context.json")
+        context_path = Path(f"./state/{context_file_path}")
         context_path.parent.mkdir(parents=True, exist_ok=True)
         with context_path.open("r+", encoding="utf-8") as f:
             current = json.load(f)
@@ -349,6 +352,8 @@ def tts(reply):
 def main():
     load_config()
     args = parse_args()
+    global context_file_path
+    context_file_path = args.contextfile
     reply = prompt_llm(args.prompt,args.debug)
     print(reply)
     if not args.no_tts:
