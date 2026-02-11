@@ -124,6 +124,10 @@ start the container. See Installation->Container section above.
 - Start the MCP server: `$ python mcp-server.py`
 - Prompt model to confirm it is working: `$ python prompt.py -p "How are you?"`
   - Run `$ python prompt.py -h` for available options
+  - For multiconversation support, append `-cf context.#.txt` to prompt.py,
+    where `#` is the number of the conversation (e.g. 1, 2, 3...)
+    - Example: `$ python prompt.py -p "How are you?" -cf context.1.txt`
+    - By default, `context.txt` is used
 - Start the Flask server to prompt the model over LAN
   - `$ python app.py`
 
