@@ -245,52 +245,64 @@ def prompt_llm(prompt,debug):
 
     tool_context_entries = []
     
-    # Check if the model decided to call a tool and store+process the tool's name and optional parameters
-    # These two lines below are full of LSP errors but work fine, just ignore
-    if getattr(message, "tool_calls", None) and len(message.tool_calls) > 0:
-        tool_name = message.tool_calls[0].function.name
-        tool_args = message.tool_calls[0].function.arguments
-        tool_call_id = message.tool_calls[0].id
-        if debug:
-            print("--- Selected Tool ---")
-            print(tool_name)
-            if tool_args:
-                print(tool_args)
-            print()
+    # Loop to handle multiple sequential tool calls
+    while getattr(message, "tool_calls", None) and len(message.tool_calls) > 0:
+        # Process all tool calls in this message
+        for tool_call in message.tool_calls:
+            tool_name = tool_call.function.name
+            tool_args = tool_call.function.arguments
+            tool_call_id = tool_call.id
+            if debug:
+                print("--- Selected Tool ---")
+                print(tool_name)
+                if tool_args:
+                    print(tool_args)
+                print()
 
-        tool_result = call_tool(tool_name,tool_args)
-        if debug:
-            print("--- Tool Result ---")
-            print(tool_result)
-            print()
+            tool_result = call_tool(tool_name,tool_args)
+            if debug:
+                print("--- Tool Result ---")
+                print(tool_result)
+                print()
 
-        # Build a new payload that includes the tool call and its result
-        # Record the assistant's tool call
-        tool_call_entry = {
-            "role": "assistant",
-            "tool_calls": [
-                {
-                    "id": tool_call_id,
-                    "type": "function",
-                    "function": {
-                        "name": tool_name,
-                        "arguments": tool_args
+            # Build a new payload that includes the tool call and its result
+            # Record the assistant's tool call
+            tool_call_entry = {
+                "role": "assistant",
+                "tool_calls": [
+                    {
+                        "id": tool_call_id,
+                        "type": "function",
+                        "function": {
+                            "name": tool_name,
+                            "arguments": tool_args
+                        }
                     }
-                }
-            ]
-        }
-        payload.append(tool_call_entry)
-        tool_context_entries.append(tool_call_entry)
-        
-        # Record the tool's response
-        tool_response_entry = {
-            "role": "tool",
-            "content": str(tool_result),
-            "tool_call_id": tool_call_id
-        }
-        payload.append(tool_response_entry)
-        tool_context_entries.append(tool_response_entry)
+                ]
+            }
+            payload.append(tool_call_entry)
+            tool_context_entries.append(tool_call_entry)
+            
+            # Record the tool's response
+            tool_response_entry = {
+                "role": "tool",
+                "content": str(tool_result),
+                "tool_call_id": tool_call_id
+            }
+            payload.append(tool_response_entry)
+            tool_context_entries.append(tool_response_entry)
+            
+            # Save to context file immediately so LLM can see it in next iteration
+            context_path = Path(f"./state/{context_file_path}")
+            with context_path.open("r+", encoding="utf-8") as f:
+                context = json.load(f)
+                context["history"].append(tool_call_entry)
+                context["history"].append(tool_response_entry)
+                f.seek(0)
+                json.dump(context, f, ensure_ascii=False, indent=2)
+                f.truncate()
 
+        # Get the next response - the LLM may call another tool or provide a final answer
         final_response = client.chat.completions.create(
             model=model,
             messages=payload,
@@ -298,12 +310,6 @@ def prompt_llm(prompt,debug):
             tool_choice="auto",
         )
         message = final_response.choices[0].message
-
-        if debug:
-            print("--- Full Message ---")
-            return message, tool_context_entries
-        else:
-            return message.content, tool_context_entries
     
     if debug:
         print("--- Full Message ---")
