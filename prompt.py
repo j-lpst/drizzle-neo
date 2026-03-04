@@ -47,7 +47,7 @@ def load_context():
     return(context)
 
 # append user's prompt and LLM's response to context file
-def save_context(prompt,reply):
+def save_context(prompt,reply,context_entries=None):
     context_path = Path(f"./state/{context_file_path}")
 
     context_path.parent.mkdir(parents=True, exist_ok=True)
@@ -57,7 +57,13 @@ def save_context(prompt,reply):
     with context_path.open("r+", encoding="utf-8") as f:
         context = json.load(f)
         context["history"].append({"role": "user", "content": prompt})
-        context["history"].append({"role": "assistant", "content": reply})
+        
+        if context_entries:
+            for entry in context_entries:
+                context["history"].append(entry)
+        else:
+            context["history"].append({"role": "assistant", "content": reply})
+        
         f.seek(0)
         json.dump(context, f, ensure_ascii=False, indent=2)
         f.truncate()
@@ -199,10 +205,18 @@ def assemble_payload(prompt,debug):
 
     # add context to payload
     for entry in context["history"]:
-        payload.append({
-            "role": entry["role"],
-            "content": entry["content"]
-        })
+        payload_entry = {"role": entry["role"]}
+        
+        if "content" in entry:
+            payload_entry["content"] = entry["content"]
+        
+        if "tool_calls" in entry:
+            payload_entry["tool_calls"] = entry["tool_calls"]
+        
+        if "tool_call_id" in entry:
+            payload_entry["tool_call_id"] = entry["tool_call_id"]
+        
+        payload.append(payload_entry)
 
     return (payload,tools)
 
@@ -229,11 +243,14 @@ def prompt_llm(prompt,debug):
         print("--- Full Message Before Tool Call Check ---")
         print(message)
 
+    tool_context_entries = []
+    
     # Check if the model decided to call a tool and store+process the tool's name and optional parameters
     # These two lines below are full of LSP errors but work fine, just ignore
     if getattr(message, "tool_calls", None) and len(message.tool_calls) > 0:
         tool_name = message.tool_calls[0].function.name
         tool_args = message.tool_calls[0].function.arguments
+        tool_call_id = message.tool_calls[0].id
         if debug:
             print("--- Selected Tool ---")
             print(tool_name)
@@ -248,7 +265,31 @@ def prompt_llm(prompt,debug):
             print()
 
         # Build a new payload that includes the tool call and its result
-        payload.append({"role": "user", "content": "SYSTEM: Tool Used: " + str(tool_name) + ", Tool Result: " + str(tool_result)})
+        # Record the assistant's tool call
+        tool_call_entry = {
+            "role": "assistant",
+            "tool_calls": [
+                {
+                    "id": tool_call_id,
+                    "type": "function",
+                    "function": {
+                        "name": tool_name,
+                        "arguments": tool_args
+                    }
+                }
+            ]
+        }
+        payload.append(tool_call_entry)
+        tool_context_entries.append(tool_call_entry)
+        
+        # Record the tool's response
+        tool_response_entry = {
+            "role": "tool",
+            "content": str(tool_result),
+            "tool_call_id": tool_call_id
+        }
+        payload.append(tool_response_entry)
+        tool_context_entries.append(tool_response_entry)
 
         final_response = client.chat.completions.create(
             model=model,
@@ -260,15 +301,15 @@ def prompt_llm(prompt,debug):
 
         if debug:
             print("--- Full Message ---")
-            return message
+            return message, tool_context_entries
         else:
-            return message.content
+            return message.content, tool_context_entries
     
     if debug:
         print("--- Full Message ---")
-        return message
+        return message, tool_context_entries
     else:
-        return message.content
+        return message.content, tool_context_entries
 
 def update_memory_if_required():
     context = load_context()
@@ -354,12 +395,24 @@ def main():
     args = parse_args()
     global context_file_path
     context_file_path = args.contextfile
-    reply = prompt_llm(args.prompt,args.debug)
+    result = prompt_llm(args.prompt,args.debug)
+    
+    if isinstance(result, tuple):
+        reply, tool_context_entries = result
+    else:
+        reply, tool_context_entries = result, None
+    
     print(reply)
     if not args.no_tts:
         tts(reply)
     if not args.no_save:
-        save_context(args.prompt,reply)
+        # Build complete context entries including the final assistant response
+        if tool_context_entries:
+            # Add the final assistant response to the tool context entries
+            tool_context_entries.append({"role": "assistant", "content": reply})
+            save_context(args.prompt, None, tool_context_entries)
+        else:
+            save_context(args.prompt, reply, None)
     update_memory_if_required()
     
 if __name__ == "__main__":
