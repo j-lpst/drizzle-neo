@@ -1,6 +1,7 @@
 import os
 import subprocess
 import json
+import re
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 
@@ -134,6 +135,40 @@ def list_state_files():
         return jsonify({"files": files})
     except Exception as e:
         return jsonify({"error": f"Failed to list files: {str(e)}"}), 500
+
+
+@app.route("/state/copy", methods=["POST"])
+def copy_state_file():
+    state_dir = os.path.join(os.path.dirname(__file__), "state")
+    data = request.get_json(force=True) or {}
+    source_filename = data.get("name")
+
+    if not source_filename:
+        return jsonify({"error": "Missing 'name' parameter"}), 400
+
+    source_path = os.path.join(state_dir, source_filename)
+
+    if not os.path.exists(source_path) or not os.path.isfile(source_path):
+        return jsonify({"error": f"File '{source_filename}' not found in state directory"}), 404
+
+    base_name, extension = os.path.splitext(source_filename)
+
+    match = re.search(r"(\d+)$", base_name)
+    if match:
+        next_num = int(match.group(1)) + 1
+        new_filename = f"{base_name.rsplit('.', 1)[0]}.{next_num}{extension}"
+    else:
+        new_filename = f"{base_name}.1{extension}"
+    dest_path = os.path.join(state_dir, new_filename)
+
+    try:
+        with open(source_path, "r") as src_file:
+            content = src_file.read()
+        with open(dest_path, "w") as dest_file:
+            dest_file.write(content)
+        return jsonify({"message": f"Copied '{source_filename}' to '{new_filename}'"}), 200
+    except Exception as e:
+        return jsonify({"error": f"Failed to copy file: {str(e)}"}), 500
 
 
 @app.route("/state/<filename>", methods=["GET"])

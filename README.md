@@ -268,3 +268,22 @@ Response:
   "content": "..."
 }
 ```
+
+### POST /state/copy
+
+Copy a file from the state directory with automatic number incrementing.
+
+```shell
+curl -X POST http://127.0.0.1:5000/state/copy \
+  -H "Content-Type: application/json" \
+  -d '{"name":"context.1.json"}'
+```
+
+Response:
+```json
+{
+  "message": "Copied 'context.1.json' to 'context.2.json'"
+}
+```
+
+If copying `context.json`, it will be copied to `context.1.json`.
