@@ -97,7 +97,7 @@ lacks GPU acceleration.
   - `$ podman build -f Containerfile.full -t drizzle-neo-full .`
 - Download your desired model and save it as `./models/model.gguf`
   - If you don't know what model to pick, download
-    `Qwen3.5-2B-GGUF` from
+    `Qwen3.5-2B-Q8_0.gguf` from
     [https://huggingface.co/unsloth/Qwen3.5-2B-GGUF/tree/main]
   - Make sure to rename the file to `model.gguf`!
 - Set server.url in `config.json` to `http://127.0.0.1:5050/v1`
