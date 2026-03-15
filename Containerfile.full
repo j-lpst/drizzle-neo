@@ -7,7 +7,6 @@ WORKDIR /app
 
 VOLUME /app/state
 VOLUME /app/models
-VOLUME /app
 
 RUN git clone https://github.com/ggml-org/llama.cpp && \
     cd llama.cpp && git checkout b8192 && \
