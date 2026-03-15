@@ -5,3 +5,4 @@ llama-swap/models
 *.old
 venv
 __pycache__
+log.txt
