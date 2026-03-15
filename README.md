@@ -291,3 +291,20 @@ Response:
 ```
 
 If copying `context.json`, it will be copied to `context.1.json`.
+
+### PUT /memory
+
+Update the long-term memory file (memory.txt).
+
+```shell
+curl -X PUT http://127.0.0.1:5000/memory \
+  -H "Content-Type: application/json" \
+  -d '{"content": "New memory content here"}'
+```
+
+Response:
+```json
+{
+  "message": "Memory updated successfully"
+}
+```

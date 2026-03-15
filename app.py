@@ -238,5 +238,23 @@ def get_state_file(filename):
         return jsonify({"error": f"Failed to read file: {str(e)}"}), 500
 
 
+@app.route("/memory", methods=["PUT"])
+def update_memory():
+    data = request.get_json(force=True) or {}
+    content = data.get("content", "")
+    app.logger.info(f"PUT /memory: {len(content)} bytes")
+
+    memory_path = os.path.join(os.path.dirname(__file__), "state", "memory.txt")
+
+    try:
+        with open(memory_path, "w") as f:
+            f.write(content)
+        app.logger.info("PUT /memory: Success")
+        return jsonify({"message": "Memory updated successfully"})
+    except Exception as e:
+        app.logger.error(f"PUT /memory: Failed - {str(e)}")
+        return jsonify({"error": f"Failed to update memory: {str(e)}"}), 500
+
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=False)
