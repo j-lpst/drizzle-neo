@@ -1,9 +1,10 @@
+import json
 import os
 import subprocess
-import json
 import re
 import logging
 from logging.handlers import RotatingFileHandler
+from pathlib import Path
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 
@@ -37,6 +38,52 @@ file_handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)s: %(messag
 app.logger.addHandler(file_handler)
 app.logger.setLevel(logging.INFO)
 app.logger.info('Drizzle NEO server starting up')
+
+BASE_DIR = Path(__file__).resolve().parent
+CONTEXT_PATH = BASE_DIR / "state" / "context.json"
+
+
+def read_context():
+    if not CONTEXT_PATH.exists():
+        CONTEXT_PATH.parent.mkdir(parents=True, exist_ok=True)
+        return {"version": 1, "history": []}
+
+    try:
+        with CONTEXT_PATH.open("r", encoding="utf-8") as context_file:
+            context = json.load(context_file)
+    except (OSError, json.JSONDecodeError):
+        return {"version": 1, "history": []}
+
+    if not isinstance(context, dict):
+        return {"version": 1, "history": []}
+
+    history = context.get("history", [])
+    if not isinstance(history, list):
+        history = []
+
+    return {
+        "version": context.get("version", 1),
+        "history": history,
+    }
+
+
+def write_context(history=None):
+    payload = {
+        "version": 1,
+        "history": history if isinstance(history, list) else [],
+    }
+    CONTEXT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with CONTEXT_PATH.open("w", encoding="utf-8") as context_file:
+        json.dump(payload, context_file, ensure_ascii=False, indent=2)
+
+
+@app.route("/context", methods=["GET", "DELETE"])
+def context():
+    if request.method == "GET":
+        return jsonify(read_context())
+
+    write_context([])
+    return jsonify({"ok": True, "history": []})
 
 @app.route("/run", methods=["POST"])
 def run_prompt():
