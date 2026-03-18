@@ -72,12 +72,13 @@ def run_prompt():
 def chat():
     data = request.get_json(force=True) or {}
     text = (data.get("text") or "").strip()
-    app.logger.info(f"POST /chat: text={text[:100]}")
+    args = data.get("args", [])
+    app.logger.info(f"POST /chat: text={text[:100]}, args={args}")
 
     if not text:
         return jsonify({"error": "Missing text"}), 400
 
-    cmd = ["python", "prompt.py", "-p", text]
+    cmd = ["python", "prompt.py", "-p", text] + args
 
     result = subprocess.run(
         cmd,

@@ -326,6 +326,27 @@ Response:
 }
 ```
 
+### POST /chat
+
+Send a chat message and receive a text response. Optionally pass command-line arguments to `prompt.py`.
+
+```shell
+curl -X POST http://127.0.0.1:5000/chat \
+  -H "Content-Type: application/json" \
+  -d '{"text":"Hello","args":["-notts"]}'
+```
+
+Request body:
+- `text` (string, required): The user's message
+- `args` (array of strings, optional): Additional command-line arguments to pass to `prompt.py` (e.g., `["-notts"]` to disable text-to-speech)
+
+Response:
+```json
+{
+  "reply": "LLM response here"
+}
+```
+
 #### Editing Context Files
 
 To implement a frontend for editing conversation context files, use the following workflow:
