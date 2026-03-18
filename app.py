@@ -3,6 +3,8 @@ import os
 import subprocess
 import re
 import logging
+import urllib.request
+import urllib.error
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from flask import Flask, jsonify, request
@@ -320,6 +322,38 @@ def update_memory():
     except Exception as e:
         app.logger.error(f"PUT /memory: Failed - {str(e)}")
         return jsonify({"error": f"Failed to update memory: {str(e)}"}), 500
+
+
+def _fetch_openai_models():
+    try:
+        config_path = os.path.join(os.path.dirname(__file__), "config.json")
+        with open(config_path, "r") as f:
+            config = json.load(f)
+        
+        server_url = config.get("server", {}).get("url", "")
+        models_url = f"{server_url}/models"
+        
+        req = urllib.request.Request(models_url)
+        req.add_header("Content-Type", "application/json")
+        
+        api_key = os.environ.get("OPENAI_API_KEY")
+        if api_key:
+            req.add_header("Authorization", f"Bearer {api_key}")
+        
+        with urllib.request.urlopen(req, timeout=10) as response:
+            data = json.loads(response.read().decode())
+            models = data.get("data", [])
+            return [m.get("id", "") for m in models if m.get("id")]
+    except Exception as e:
+        app.logger.error(f"Failed to fetch models: {str(e)}")
+        return []
+
+
+@app.route("/models", methods=["GET"])
+def get_models():
+    app.logger.info("GET /models")
+    models = _fetch_openai_models()
+    return jsonify({"models": models})
 
 
 if __name__ == "__main__":
