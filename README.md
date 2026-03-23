@@ -224,6 +224,14 @@ permanently stored in `context-archive.json`
 
 ## API Endpoints
 
+### GET /config/default
+
+Retrieve the default configuration from `config.default.json`.
+
+```shell
+curl http://127.0.0.1:5000/config/default
+```
+
 ### GET /config
 
 Retrieve the current configuration.
