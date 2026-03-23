@@ -7,8 +7,12 @@ import urllib.request
 import urllib.error
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, session
 from flask_cors import CORS
+
+app = Flask(__name__)
+CORS(app, supports_credentials=True)
+app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
 
 print("""
     _/_/_/    _/_/_/    _/_/_/  _/_/_/_/_/  _/_/_/_/_/  _/        _/_/_/_/   
@@ -16,22 +20,19 @@ print("""
   _/    _/  _/_/_/      _/        _/          _/      _/        _/_/_/       
  _/    _/  _/    _/    _/      _/          _/        _/        _/            
 /_/_/    _/    _/  _/_/_/  _/_/_/_/_/  _/_/_/_/_/  _/_/_/_/  _/_/_/_/       
-                                                                              
+                                                                               
                                      
     _/      _/  _/_/_/_/    _/_/    
    _/_/    _/  _/        _/    _/   
   _/  _/  _/  _/_/_/    _/    _/    
  _/    _/_/  _/        _/    _/     
-_/      _/  _/_/_/_/    _/_/        
+/_/      _/  _/_/_/_/    _/_/        
 """)
 
 # Example usage with curl:
 # curl -X POST http://127.0.0.1:5000/run \
 #    -H "Content-Type: application/json" \
 #    -d '{"prompt":"Tell me Golden Pothos facts.","args":["-notts"]}'
-
-app = Flask(__name__)
-CORS(app)
 
 log_file = os.path.join(os.path.dirname(__file__), "log.txt")
 file_handler = RotatingFileHandler(log_file, maxBytes=10485760, backupCount=5)
@@ -40,6 +41,33 @@ file_handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)s: %(messag
 app.logger.addHandler(file_handler)
 app.logger.setLevel(logging.INFO)
 app.logger.info('Drizzle NEO server starting up')
+
+def require_auth(f):
+    def decorated(*args, **kwargs):
+        if not session.get("authenticated"):
+            return jsonify({"error": "Authentication required"}), 401
+        return f(*args, **kwargs)
+    decorated.__name__ = f.__name__
+    return decorated
+
+
+@app.route("/login", methods=["POST"])
+def login():
+    data = request.get_json(force=True) or {}
+    password = data.get("password", "")
+    
+    if password == os.environ.get("API_PASSWORD"):
+        session["authenticated"] = True
+        return jsonify({"ok": True})
+    
+    return jsonify({"error": "Invalid password"}), 401
+
+
+@app.route("/logout", methods=["POST"])
+def logout():
+    session.pop("authenticated", None)
+    return jsonify({"ok": True})
+
 
 BASE_DIR = Path(__file__).resolve().parent
 CONTEXT_PATH = BASE_DIR / "state" / "context.json"
@@ -80,6 +108,7 @@ def write_context(history=None):
 
 
 @app.route("/context", methods=["GET", "DELETE"])
+@require_auth
 def context():
     if request.method == "GET":
         return jsonify(read_context())
@@ -88,6 +117,7 @@ def context():
     return jsonify({"ok": True, "history": []})
 
 @app.route("/run", methods=["POST"])
+@require_auth
 def run_prompt():
     data = request.get_json(force=True)
     app.logger.info(f"POST /run: prompt={data.get('prompt', '')[:100]}, args={data.get('args', [])}")
@@ -118,6 +148,7 @@ def run_prompt():
 
 
 @app.route("/chat", methods=["POST"])
+@require_auth
 def chat():
     data = request.get_json(force=True) or {}
     text = (data.get("text") or "").strip()
@@ -146,6 +177,7 @@ def chat():
 
 
 @app.route("/delete-conversation/<conversation_name>", methods=["DELETE"])
+@require_auth
 def handle_delete_conversation(conversation_name):
     app.logger.info(f"DELETE /delete-conversation/{conversation_name}")
     state_dir = os.path.join(os.path.dirname(__file__), "state")
@@ -165,6 +197,7 @@ def handle_delete_conversation(conversation_name):
 
 
 @app.route("/config/default", methods=["GET"])
+@require_auth
 def get_default_config():
     app.logger.info("GET /config/default")
     config_path = os.path.join(os.path.dirname(__file__), "config.default.json")
@@ -178,6 +211,7 @@ def get_default_config():
 
 
 @app.route("/config", methods=["GET"])
+@require_auth
 def get_config():
     app.logger.info("GET /config")
     config_path = os.path.join(os.path.dirname(__file__), "config.json")
@@ -201,6 +235,7 @@ def _deep_merge(base, update):
 
 
 @app.route("/config", methods=["PUT"])
+@require_auth
 def update_config():
     app.logger.info("PUT /config")
     config_path = os.path.join(os.path.dirname(__file__), "config.json")
@@ -219,6 +254,7 @@ def update_config():
 
 
 @app.route("/state", methods=["GET"])
+@require_auth
 def list_state_files():
     app.logger.info("GET /state")
     state_dir = os.path.join(os.path.dirname(__file__), "state")
@@ -232,6 +268,7 @@ def list_state_files():
 
 
 @app.route("/state/copy", methods=["POST"])
+@require_auth
 def copy_state_file():
     data = request.get_json(force=True) or {}
     source_filename = data.get("name")
@@ -282,6 +319,7 @@ def copy_state_file():
 
 
 @app.route("/state/<filename>", methods=["GET"])
+@require_auth
 def get_state_file(filename):
     app.logger.info(f"GET /state/{filename}")
     state_dir = os.path.join(os.path.dirname(__file__), "state")
@@ -302,6 +340,7 @@ def get_state_file(filename):
 
 
 @app.route("/state/<filename>", methods=["PUT"])
+@require_auth
 def update_state_file(filename):
     app.logger.info(f"PUT /state/{filename}")
     data = request.get_json(force=True) or {}
@@ -320,6 +359,7 @@ def update_state_file(filename):
 
 
 @app.route("/memory", methods=["PUT"])
+@require_auth
 def update_memory():
     data = request.get_json(force=True) or {}
     content = data.get("content", "")
@@ -363,6 +403,7 @@ def _fetch_openai_models():
 
 
 @app.route("/models", methods=["GET"])
+@require_auth
 def get_models():
     app.logger.info("GET /models")
     models = _fetch_openai_models()
@@ -370,6 +411,7 @@ def get_models():
 
 
 @app.route("/logs", methods=["GET"])
+@require_auth
 def get_logs():
     app.logger.info("GET /logs")
     try:

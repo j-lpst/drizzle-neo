@@ -78,7 +78,8 @@ If using Docker, replace `podman` with `docker`.
 ```shell
 curl -X POST http://127.0.0.1:5000/run \
    -H "Content-Type: application/json" \
-   -d '{"prompt":"What\'s the weather like?","args":["-notts"]}'
+   -d '{"prompt":"What\'s the weather like?","args":["-notts"]}' \
+   -b cookies.txt
 ```
 
 ### Container (full)
@@ -113,7 +114,8 @@ lacks GPU acceleration.
 ```shell
 curl -X POST http://127.0.0.1:5000/run \
    -H "Content-Type: application/json" \
-   -d '{"prompt":"Who are you?","args":["-notts"]}'
+   -d '{"prompt":"Who are you?","args":["-notts"]}' \
+   -b cookies.txt
 ```
 
 ## Usage
@@ -140,7 +142,8 @@ Example `curl` call:
 ```shell
 curl -X POST http://127.0.0.1:5000/run \
    -H "Content-Type: application/json" \
-   -d '{"prompt":"Tell me Golden Pothos facts.","args":["-notts"]}'
+   -d '{"prompt":"Tell me Golden Pothos facts.","args":["-notts"]}' \
+   -b cookies.txt
 ```
 
 - Run assistant.py for hands-free conversations: `$ python assistant.py`
@@ -222,6 +225,60 @@ service is down quite often, so expect curl errors
 Use RAG to recall information from past conversations. All conversations are
 permanently stored in `context-archive.json`
 
+## Authentication
+
+The API requires authentication via session cookies. Set the following environment variables before starting the server:
+
+```bash
+export API_PASSWORD="your-password"
+export SECRET_KEY="your-secret-key"
+```
+
+Start the server:
+```bash
+python app.py
+```
+
+### POST /login
+
+Authenticate and receive a session cookie.
+
+```shell
+curl -X POST http://127.0.0.1:5000/login \
+  -H "Content-Type: application/json" \
+  -d '{"password":"your-password"}' \
+  -c cookies.txt
+```
+
+Response:
+```json
+{
+  "ok": true
+}
+```
+
+### POST /logout
+
+End the current session.
+
+```shell
+curl -X POST http://127.0.0.1:5000/logout \
+  -b cookies.txt
+```
+
+Response:
+```json
+{
+  "ok": true
+}
+```
+
+All subsequent API calls require the session cookie from `/login`:
+
+```shell
+curl http://127.0.0.1:5000/logs -b cookies.txt
+```
+
 ## API Endpoints
 
 ### GET /config/default
@@ -229,7 +286,7 @@ permanently stored in `context-archive.json`
 Retrieve the default configuration from `config.default.json`.
 
 ```shell
-curl http://127.0.0.1:5000/config/default
+curl http://127.0.0.1:5000/config/default -b cookies.txt
 ```
 
 ### GET /logs
@@ -237,7 +294,7 @@ curl http://127.0.0.1:5000/config/default
 Retrieve the server log file (`log.txt`).
 
 ```shell
-curl http://127.0.0.1:5000/logs
+curl http://127.0.0.1:5000/logs -b cookies.txt
 ```
 
 ### GET /config
@@ -245,7 +302,7 @@ curl http://127.0.0.1:5000/logs
 Retrieve the current configuration.
 
 ```shell
-curl http://127.0.0.1:5000/config
+curl http://127.0.0.1:5000/config -b cookies.txt
 ```
 
 ### PUT /config
@@ -255,7 +312,8 @@ Update the configuration.
 ```shell
 curl -X PUT http://127.0.0.1:5000/config \
   -H "Content-Type: application/json" \
-  -d '{"server": {"url": "http://new-url:9292/v1"}}'
+  -d '{"server": {"url": "http://new-url:9292/v1"}}' \
+  -b cookies.txt
 ```
 
 ### GET /state
@@ -263,7 +321,7 @@ curl -X PUT http://127.0.0.1:5000/config \
 Retrieve a list of all files in the state directory.
 
 ```shell
-curl http://127.0.0.1:5000/state
+curl http://127.0.0.1:5000/state -b cookies.txt
 ```
 
 Response:
@@ -278,7 +336,7 @@ Response:
 Retrieve the contents of a file from the state directory.
 
 ```shell
-curl http://127.0.0.1:5000/state/context.1.json
+curl http://127.0.0.1:5000/state/context.1.json -b cookies.txt
 ```
 
 Response:
@@ -296,7 +354,8 @@ Copy a file from the state directory with automatic number incrementing.
 ```shell
 curl -X POST http://127.0.0.1:5000/state/copy \
   -H "Content-Type: application/json" \
-  -d '{"name":"context.1.json"}'
+  -d '{"name":"context.1.json"}' \
+  -b cookies.txt
 ```
 
 Response:
@@ -315,7 +374,8 @@ Update the long-term memory file (memory.txt).
 ```shell
 curl -X PUT http://127.0.0.1:5000/memory \
   -H "Content-Type: application/json" \
-  -d '{"content": "New memory content here"}'
+  -d '{"content": "New memory content here"}' \
+  -b cookies.txt
 ```
 
 Response:
@@ -332,7 +392,8 @@ Update the contents of a file in the state directory.
 ```shell
 curl -X PUT http://127.0.0.1:5000/state/context.1.json \
   -H "Content-Type: application/json" \
-  -d '{"content": "New file content here"}'
+  -d '{"content": "New file content here"}' \
+  -b cookies.txt
 ```
 
 Response:
@@ -349,7 +410,8 @@ Send a chat message and receive a text response. Optionally pass command-line ar
 ```shell
 curl -X POST http://127.0.0.1:5000/chat \
   -H "Content-Type: application/json" \
-  -d '{"text":"Hello","args":["-notts"]}'
+  -d '{"text":"Hello","args":["-notts"]}' \
+  -b cookies.txt
 ```
 
 Request body:
@@ -368,7 +430,7 @@ Response:
 Retrieve the conversation history stored in `state/context.json`.
 
 ```shell
-curl http://127.0.0.1:5000/context
+curl http://127.0.0.1:5000/context -b cookies.txt
 ```
 
 Response:
@@ -393,7 +455,7 @@ Response:
 Clear all conversation history by resetting `state/context.json` to an empty state.
 
 ```shell
-curl -X DELETE http://127.0.0.1:5000/context
+curl -X DELETE http://127.0.0.1:5000/context -b cookies.txt
 ```
 
 Response:
@@ -416,7 +478,9 @@ To implement a frontend for editing conversation context files, use the followin
 
 ```javascript
 // 1. Read a specific context file
-const contextResponse = await fetch('http://127.0.0.1:5000/state/context.json');
+const contextResponse = await fetch('http://127.0.0.1:5000/state/context.json', {
+  headers: { 'Cookie': 'session=YOUR_SESSION_COOKIE' }
+});
 const context = await contextResponse.json();
 // context.content contains the file content as a string
 
@@ -425,7 +489,10 @@ const context = await contextResponse.json();
 // 3. Save the edited content
 const updateResponse = await fetch('http://127.0.0.1:5000/state/context.json', {
   method: 'PUT',
-  headers: { 'Content-Type': 'application/json' },
+  headers: {
+    'Content-Type': 'application/json',
+    'Cookie': 'session=YOUR_SESSION_COOKIE'
+  },
   body: JSON.stringify({ content: editedContent })
 });
 const result = await updateResponse.json();
