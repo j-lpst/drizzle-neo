@@ -232,6 +232,14 @@ Retrieve the default configuration from `config.default.json`.
 curl http://127.0.0.1:5000/config/default
 ```
 
+### GET /logs
+
+Retrieve the server log file (`log.txt`).
+
+```shell
+curl http://127.0.0.1:5000/logs
+```
+
 ### GET /config
 
 Retrieve the current configuration.
