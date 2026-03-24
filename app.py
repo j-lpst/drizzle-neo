@@ -254,6 +254,7 @@ def update_config():
 
 
 @app.route("/config/restore-default", methods=["POST"])
+@require_auth
 def restore_default_config():
     app.logger.info("POST /config/restore-default")
     base_dir = os.path.dirname(__file__)
