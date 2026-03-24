@@ -135,7 +135,7 @@ start the container. See Installation->Container section above.
     - Example: `$ python prompt.py -p "How are you?" -cf context.1.txt`
     - By default, `context.txt` is used
 - Start the Flask server to prompt the model over LAN
-  - `$ python app.py`
+  - `$ API_PASSWORD="secret123" python app.py`
 
 Example `curl` call:
 
@@ -236,7 +236,7 @@ export SECRET_KEY="your-secret-key"
 
 Start the server:
 ```bash
-python app.py
+API_PASSWORD="secret123" python app.py
 ```
 
 ### POST /login
