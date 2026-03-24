@@ -7,6 +7,8 @@ services:
     volumes:
       - ./state:/app/state:z
       - ./config.json:/app/config.json:z
+    environment:
+      - API_PASSWORD=secret123
     restart: unless-stopped
 
 #services:
@@ -18,5 +20,8 @@ services:
 #    volumes:
 #      - ./state:/app/state:z
 #      - ./config.json:/app/config.json:z
+#      - ./prompt.py:/app/prompt.py:z
 #      - ./models:/app/models:z
+#    environment:
+#      - API_PASSWORD=secret123
 #    restart: unless-stopped
