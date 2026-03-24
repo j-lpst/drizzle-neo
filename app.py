@@ -253,6 +253,27 @@ def update_config():
         return jsonify({"error": f"Failed to update config: {str(e)}"}), 500
 
 
+@app.route("/config/restore-default", methods=["POST"])
+def restore_default_config():
+    app.logger.info("POST /config/restore-default")
+    base_dir = os.path.dirname(__file__)
+    default_config_path = os.path.join(base_dir, "config.default.json")
+    config_path = os.path.join(base_dir, "config.json")
+
+    try:
+        with open(default_config_path, "r") as default_file:
+            default_config = json.load(default_file)
+
+        with open(config_path, "w") as config_file:
+            json.dump(default_config, config_file, indent=4)
+
+        app.logger.info("POST /config/restore-default: Success")
+        return jsonify({"message": "Config restored from defaults", "config": default_config})
+    except Exception as e:
+        app.logger.error(f"POST /config/restore-default: Failed - {str(e)}")
+        return jsonify({"error": f"Failed to restore default config: {str(e)}"}), 500
+
+
 @app.route("/state", methods=["GET"])
 @require_auth
 def list_state_files():
