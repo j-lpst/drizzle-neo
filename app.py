@@ -3,8 +3,10 @@ import os
 import subprocess
 import re
 import logging
+import time
 import urllib.request
 import urllib.error
+import threading
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from flask import Flask, jsonify, request, session
@@ -446,5 +448,56 @@ def get_logs():
         return jsonify({"error": f"Failed to read logs: {str(e)}"}), 500
 
 
+def load_config():
+    config_path = os.path.join(os.path.dirname(__file__), "config.json")
+    try:
+        with open(config_path, "r") as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+def run_heartbeat():
+    config = load_config()
+    interval = config.get("heartbeat", {}).get("interval", 60)
+    
+    heartbeat_path = os.path.join(os.path.dirname(__file__), "HEARTBEAT.md")
+    if not os.path.exists(heartbeat_path):
+        return
+    
+    with open(heartbeat_path, "r") as f:
+        prompt_text = f.read().strip()
+    
+    cmd = ["python", "prompt.py", "-p", prompt_text, "-notts", "-ns"]
+    
+    result = subprocess.run(
+        cmd,
+        cwd=os.path.dirname(__file__),
+        capture_output=True,
+        text=True,
+        timeout=300
+    )
+    
+    response_path = os.path.join(os.path.dirname(__file__), "state", "heartbeat-response.json")
+    os.makedirs(os.path.dirname(response_path), exist_ok=True)
+    
+    response_data = {
+        "response": result.stdout.strip() if result.returncode == 0 else result.stderr.strip(),
+        "success": result.returncode == 0
+    }
+    
+    with open(response_path, "w") as f:
+        json.dump(response_data, f, indent=2)
+    
+    app.logger.info(f"Heartbeat completed - saved to {response_path}")
+
+def heartbeat_timer():
+    while True:
+        run_heartbeat()
+        interval = load_config().get("heartbeat", {}).get("interval", 60)
+        time.sleep(interval)
+
 if __name__ == "__main__":
+    heartbeat_thread = threading.Thread(target=heartbeat_timer, daemon=True)
+    heartbeat_thread.start()
+    app.logger.info("Heartbeat timer started")
     app.run(host="0.0.0.0", port=5000, debug=False)
