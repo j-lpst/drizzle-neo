@@ -1,0 +1,9 @@
+{
+    "enabled": [
+        "get_moisture_level",
+        "get_date_and_time",
+        "get_weather",
+        "recall_longterm_memory"
+    ],
+    "disabled": []
+}

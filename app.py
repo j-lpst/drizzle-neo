@@ -73,6 +73,7 @@ def logout():
 
 BASE_DIR = Path(__file__).resolve().parent
 CONTEXT_PATH = BASE_DIR / "state" / "context.json"
+TOOLS_CONFIG_PATH = BASE_DIR / "tools.json"
 
 
 def read_context():
@@ -236,6 +237,28 @@ def _deep_merge(base, update):
     return result
 
 
+def load_tools_config():
+    if not TOOLS_CONFIG_PATH.exists():
+        return {
+            "enabled": ["get_moisture_level", "get_date_and_time", "get_weather", "recall_longterm_memory"],
+            "disabled": []
+        }
+    try:
+        with open(TOOLS_CONFIG_PATH, "r") as f:
+            return json.load(f)
+    except (OSError, json.JSONDecodeError):
+        return {
+            "enabled": ["get_moisture_level", "get_date_and_time", "get_weather", "recall_longterm_memory"],
+            "disabled": []
+        }
+
+
+def save_tools_config(config):
+    TOOLS_CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with open(TOOLS_CONFIG_PATH, "w") as f:
+        json.dump(config, f, indent=4)
+
+
 @app.route("/config", methods=["PUT"])
 @require_auth
 def update_config():
@@ -253,6 +276,35 @@ def update_config():
     except Exception as e:
         app.logger.error(f"PUT /config: Failed - {str(e)}")
         return jsonify({"error": f"Failed to update config: {str(e)}"}), 500
+
+
+@app.route("/tools", methods=["GET"])
+@require_auth
+def list_tools():
+    app.logger.info("GET /tools")
+    config = load_tools_config()
+    return jsonify(config)
+
+
+@app.route("/tools/<tool_name>/toggle", methods=["POST"])
+@require_auth
+def toggle_tool(tool_name):
+    app.logger.info(f"POST /tools/{tool_name}/toggle")
+    config = load_tools_config()
+    if tool_name in config["enabled"]:
+        config["enabled"].remove(tool_name)
+        config["disabled"].append(tool_name)
+        action = "disabled"
+    elif tool_name in config["disabled"]:
+        config["disabled"].remove(tool_name)
+        config["enabled"].append(tool_name)
+        action = "enabled"
+    else:
+        config["enabled"].append(tool_name)
+        action = "enabled"
+    save_tools_config(config)
+    app.logger.info(f"POST /tools/{tool_name}/toggle: Tool {tool_name} {action}")
+    return jsonify({"message": f"Tool {tool_name} {action}", "config": config})
 
 
 @app.route("/config/restore-default", methods=["POST"])

@@ -12,6 +12,22 @@ from memory import update_memory_if_required
 # Global variable to hold the chosen context file name (default: context.json)
 context_file_path = "context.json"
 
+def load_tools_config():
+    config_path = Path("./tools.json")
+    if not config_path.exists():
+        return {
+            "enabled": ["get_moisture_level", "get_date_and_time", "get_weather", "recall_longterm_memory"],
+            "disabled": []
+        }
+    try:
+        with open(config_path, "r") as f:
+            return json.load(f)
+    except (OSError, json.JSONDecodeError):
+        return {
+            "enabled": ["get_moisture_level", "get_date_and_time", "get_weather", "recall_longterm_memory"],
+            "disabled": []
+        }
+
 # load configuration options and make them global variables
 def load_config():
     with open('config.json') as f:
@@ -121,7 +137,11 @@ def get_tools():
                 "parameters": t.get("inputSchema", {"type": "object"})
             }
         })
-    return openai_tools
+    
+    tools_config = load_tools_config()
+    enabled_tools = tools_config.get("enabled", [])
+    filtered_tools = [t for t in openai_tools if t["function"]["name"] in enabled_tools]
+    return filtered_tools
 
 # call a tool the LLM wants to call and return what the MCP server outputs
 def call_tool(tool_name,tool_args):

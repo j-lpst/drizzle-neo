@@ -466,6 +466,68 @@ Response:
 }
 ```
 
+### GET /tools
+
+Retrieve the current tool configuration, showing which tools are enabled and disabled.
+
+```shell
+curl http://127.0.0.1:5000/tools -b cookies.txt
+```
+
+Response:
+```json
+{
+  "enabled": [
+    "get_moisture_level",
+    "get_date_and_time",
+    "get_weather",
+    "recall_longterm_memory"
+  ],
+  "disabled": []
+}
+```
+
+### POST /tools/<tool_name>/toggle
+
+Toggle a specific tool between enabled and disabled states.
+
+```shell
+curl -X POST http://127.0.0.1:5000/tools/get_weather/toggle -b cookies.txt
+```
+
+Response (when disabling):
+```json
+{
+  "message": "Tool get_weather disabled",
+  "config": {
+    "enabled": [
+      "get_moisture_level",
+      "get_date_and_time",
+      "recall_longterm_memory"
+    ],
+    "disabled": [
+      "get_weather"
+    ]
+  }
+}
+```
+
+Response (when enabling):
+```json
+{
+  "message": "Tool get_weather enabled",
+  "config": {
+    "enabled": [
+      "get_moisture_level",
+      "get_date_and_time",
+      "get_weather",
+      "recall_longterm_memory"
+    ],
+    "disabled": []
+  }
+}
+```
+
 #### Editing Context Files
 
 To implement a frontend for editing conversation context files, use the following workflow:

@@ -5,4 +5,5 @@ llama-swap/models
 *.old
 venv
 __pycache__
+cookies.txt
 log.txt
