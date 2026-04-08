@@ -500,6 +500,24 @@ def get_logs():
         return jsonify({"error": f"Failed to read logs: {str(e)}"}), 500
 
 
+@app.route("/heartbeat", methods=["GET"])
+@require_auth
+def get_heartbeat():
+    app.logger.info("GET /heartbeat")
+    heartbeat_path = os.path.join(os.path.dirname(__file__), "state", "heartbeat-response.json")
+    try:
+        if not os.path.exists(heartbeat_path):
+            app.logger.warning("GET /heartbeat: File not found")
+            return jsonify({"error": "Heartbeat response not found"}), 404
+        with open(heartbeat_path, "r") as f:
+            data = json.load(f)
+        app.logger.info("GET /heartbeat: Success")
+        return jsonify(data)
+    except Exception as e:
+        app.logger.error(f"GET /heartbeat: Failed - {str(e)}")
+        return jsonify({"error": f"Failed to read heartbeat: {str(e)}"}), 500
+
+
 def load_config():
     config_path = os.path.join(os.path.dirname(__file__), "config.json")
     try:

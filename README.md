@@ -297,6 +297,22 @@ Retrieve the server log file (`log.txt`).
 curl http://127.0.0.1:5000/logs -b cookies.txt
 ```
 
+### GET /heartbeat
+
+Retrieve the latest heartbeat response from `state/heartbeat-response.json`.
+
+```shell
+curl http://127.0.0.1:5000/heartbeat -b cookies.txt
+```
+
+Response:
+```json
+{
+  "response": "Status update: My moisture level is currently at 41%, which is a bit below my optimal range of 50-70%. I'm feeling slightly thirsty but still hanging in there!",
+  "success": true
+}
+```
+
 ### GET /config
 
 Retrieve the current configuration.
